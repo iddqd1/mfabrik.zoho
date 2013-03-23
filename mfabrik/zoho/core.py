@@ -26,7 +26,7 @@ except ImportError:
    
 
 try:
-    import json
+    import json as simplejson
 except ImportError:
     try:
         import simplejson
@@ -87,6 +87,25 @@ class Connection(object):
         """ Open a new Zoho API session """
         self.ticket = self._create_ticket()
     
+    def close(self):
+        """ Close the current Zoho API session ("ticket") """
+        try:
+            self.ensure_opened()
+        except ZohoException, ze:
+            # D'oh! He's using exceptions for flow and that makes me :(
+            # just make the error message easier
+            raise ZohoException("No connection found. No ticket appears open.")
+
+        requestUrl = "https://accounts.zoho.com/logout?ticket=%s&FROM_AGENT=true" % self.ticket
+        request = urllib2.Request(requestUrl)
+        body = urllib2.urlopen(request).read()
+        
+        data = self._parse_ticket_response(body)
+        if not data.has_key("RESULT"):
+            raise ZohoException("Missing 'RESULT' in response: %s" % data)
+        if not data["RESULT"] == "TRUE":
+            raise ZohoException("Could not close ticket: %s" % data)
+
     def _create_ticket(self):
         """ 
         Ticket idenfities Zoho session.
@@ -108,7 +127,8 @@ class Connection(object):
         body = urllib2.urlopen(request).read()
         
         data = self._parse_ticket_response(body)
-        
+        if not data.has_key("WARNING"):
+            raise ZohoException(str(data))
         if data["WARNING"] != "null":
             # Zoho has set an error field
             raise ZohoException("Could not auth:" + data["WARNING"])
