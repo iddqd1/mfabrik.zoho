@@ -37,7 +37,7 @@ def enable_debug_log():
     logger.root.setLevel(logging.DEBUG)
     logger.root.addHandler(logging.StreamHandler(sys.stdout))
 
-enable_debug_log()
+# enable_debug_log()
 
 class TestCRM(unittest.TestCase):
     """ Zoho CRM specific tests. """
@@ -82,7 +82,7 @@ class TestCRM(unittest.TestCase):
 
         # Insert a new lead to Zoho CRM lead database.
         # We support multiple leads per call, so we need to listify our one lead first.
-        self.crm.insert_records([lead])
+        self.crm.insert_leads([lead])
         
     def clear_test_leads(self):
         """ Remove all test leads from the database """
@@ -117,7 +117,7 @@ class TestCRM(unittest.TestCase):
         }
 
         try:
-            self.crm.insert_records([lead])
+            self.crm.insert_leads([lead])
             raise AssertionError("Should not be reached")
         except ZohoException:
             pass
