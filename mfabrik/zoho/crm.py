@@ -75,6 +75,42 @@ class CRM(Connection):
             no += 1
             return root
 
+    def _parse_json_response(self, response, record_name):
+        # raw data looks like {'response': {'result': {'Leads': {'row': 
+        # [{'FL': [{'content': '177376000000142085', 'val': 'LEADID'}, ...
+
+        data =  decode_json(response)
+        
+        def parse_row(row):
+            item = {}
+            if type(row["FL"]) == list:
+                for cell in row["FL"]:
+                    item[cell["val"]] = cell["content"]
+            elif type(row["FL"]) == dict:
+                cell = row["FL"]
+                item[cell["val"]] = cell["content"]
+            else:
+                raise ZohoException("Unknown structure to row '%s'" % row)
+            return item
+        # Sanify output data to more Python-like format
+        
+        if data["response"].has_key("nodata"):
+            return []
+
+        output = []
+        rows = data["response"]["result"][record_name]["row"]
+        if type(rows) == list:
+            for row in rows:
+                item = parse_row(row)
+                output.append(item)
+        elif type(rows) == dict:
+            item = parse_row(rows)
+            output.append(item)
+        else:
+            raise ZohoException("Unknown structure to rows '%s'" % rows)
+        return output
+
+
     def _insert_records(self, record_name, records, extra_post_parameters={}):
         """ Insert new records (leads, contacts, etc) to Zoho CRM database.
         
@@ -127,7 +163,8 @@ class CRM(Connection):
                 records.append(record_detail)
         return records
         
-    def get_records(self, record_name, selectColumns, parameters={}):
+    def get_records(self, record_name, selectColumns, 
+            from_index=0, to_index=200, parameters={}):
         """ 
         
         http://zohocrmapi.wiki.zoho.com/getRecords-Method.html
@@ -144,36 +181,47 @@ class CRM(Connection):
         
         self.ensure_opened()
         
-
         post_params = {
             "selectColumns" : selectColumns,
-            "newFormat" : 2
+            "newFormat" : 2,
+            "fromIndex" : from_index,
+            "toIndex" : to_index,
         }
         
         post_params.update(parameters)
 
         response = self.do_call(
             "https://crm.zoho.com/crm/private/json/%s/getRecords" % (record_name), post_params)
+        return self._parse_json_response(response, record_name)
+
+    def get_related_records(self, record_name, parent_module, contact_id, 
+            from_index=0, to_index=200, parameters={}):
         
-        # raw data looks like {'response': {'result': {'Leads': {'row': [{'FL': [{'content': '177376000000142085', 'val': 'LEADID'}, ...
-        data =  decode_json(response)
+        self.ensure_opened()
         
-        # Sanify output data to more Python-like format
-        output = []
-        for row in data["response"]["result"][record_name]["row"]:
-            item = {}
-            for cell in row["FL"]:
-                item[cell["val"]] = cell["content"]
-            
-            output.append(item)
-            
-        return output
-    
-    def get_leads(self):
-        return self.get_records("Leads", 'leads(First Name,Last Name,Company)')
-    def get_contacts(self):
-        return self.get_records("Contacts", 'contacts(First Name,Last Name,Email)')
-    
+        post_params = {
+            "id" : contact_id,
+            "newFormat" : 2,
+            "parentModule" : parent_module,
+            "fromIndex" : from_index,
+            "toIndex" : to_index,
+        }
+        
+        post_params.update(parameters)
+
+        response = self.do_call(
+            "https://crm.zoho.com/crm/private/json/%s/getRelatedRecords" % (record_name), post_params)
+        return self._parse_json_response(response, record_name)
+
+    def get_leads(self, select_columns='leads(Email,First Name,Last Name,Created Time)', **kwargs):
+        return self.get_records("Leads", select_columns, **kwargs)
+    def get_contacts(self, select_columns='contacts(First Name,Last Name,Email,Signed up at,Created Time)', **kwargs):
+        return self.get_records("Contacts", select_columns, **kwargs)
+    def get_potentials(self, select_columns='potentials(Stage,Closing Date)', **kwargs):
+        return self.get_records("Potentials", select_columns, **kwargs)
+    def get_contacts_for_potential(self, contact_id):
+        return self.get_related_records('ContactRoles', 'Potentials', contact_id)
+
     def delete_record(self, id, parameters={}):
         """ Delete one record from Zoho CRM.
                         
@@ -191,4 +239,4 @@ class CRM(Connection):
         response = self.do_call("https://crm.zoho.com/crm/private/xml/Leads/deleteRecords", post_params)
         
         self.check_successful_xml(response)
-        
+
