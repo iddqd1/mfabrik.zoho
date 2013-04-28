@@ -96,7 +96,9 @@ class CRM(Connection):
         
         if data["response"].has_key("nodata"):
             return []
-
+        
+        # are there times when there's 'response', no 'nodata'
+        # that would require explicit checking for 'result' key??
         output = []
         rows = data["response"]["result"][record_name]["row"]
         if type(rows) == list:
@@ -164,7 +166,7 @@ class CRM(Connection):
         return records
         
     def get_records(self, record_name, selectColumns, 
-            from_index=0, to_index=200, parameters={}):
+            from_index=None, to_index=None, parameters={}):
         """ 
         
         http://zohocrmapi.wiki.zoho.com/getRecords-Method.html
@@ -184,10 +186,12 @@ class CRM(Connection):
         post_params = {
             "selectColumns" : selectColumns,
             "newFormat" : 2,
-            "fromIndex" : from_index,
-            "toIndex" : to_index,
         }
-        
+        if from_index:
+            post_params['fromIndex'] = from_index
+        if to_index:
+            post_params['toIndex'] = to_index
+
         post_params.update(parameters)
 
         response = self.do_call(
