@@ -113,7 +113,7 @@ class CRM(Connection):
         return output
 
 
-    def _insert_records(self, record_name, records, extra_post_parameters={}):
+    def _insert_records(self, record_name, method, records, extra_post_parameters={}):
         """ Insert new records (leads, contacts, etc) to Zoho CRM database.
         
         The contents of the record parameters can be defined in Zoho CRM itself.
@@ -136,19 +136,24 @@ class CRM(Connection):
         }
         post.update(extra_post_parameters)
         response = self.do_xml_call(
-            "https://crm.zoho.com/crm/private/xml/%s/insertRecords" % record_name, post, root)
+            "https://crm.zoho.com/crm/private/xml/%s/%s" % (record_name, method), 
+            post, root)
         self.check_successful_xml(response)
         return self.get_inserted_records(response)
 
     def insert_leads(self, leads, extra_post_parameters={}):
-        return self._insert_records("Leads", leads, extra_post_parameters)
+        return self._insert_records("Leads", "insertRecords", leads, extra_post_parameters)
     def insert_contacts(self, contacts, extra_post_parameters={}):
-        return self._insert_records("Contacts", contacts, extra_post_parameters)
+        return self._insert_records("Contacts", "insertRecords", contacts, extra_post_parameters)
     def insert_potentials(self, potentials, extra_post_parameters={}):
-        return self._insert_records("Potentials", potentials, extra_post_parameters)
+        return self._insert_records("Potentials", "insertRecords", potentials, extra_post_parameters)
     def insert_notes(self, notes, extra_post_parameters={}):
-        return self._insert_records("Notes", notes, extra_post_parameters)
+        return self._insert_records("Notes", "insertRecords", notes, extra_post_parameters)
 
+    def update_contacts(self, contacts, extra_post_parameters={}):
+        return self._insert_records("Contacts", "updateRecords", contacts, extra_post_parameters)
+    def update_leads(self, leads, extra_post_parameters={}):
+        return self._insert_records("Leads", "updateRecords", leads, extra_post_parameters)
     
     def get_inserted_records(self, response):
         """
@@ -217,11 +222,17 @@ class CRM(Connection):
             "https://crm.zoho.com/crm/private/json/%s/getRelatedRecords" % (record_name), post_params)
         return self._parse_json_response(response, record_name)
 
-    def get_leads(self, select_columns='leads(Email,First Name,Last Name,Created Time)', **kwargs):
+    def get_leads(self, 
+            select_columns='leads(Email,First Name,Last Name,Lead Status,Signed up at,Created Time)', 
+            **kwargs):
         return self.get_records("Leads", select_columns, **kwargs)
-    def get_contacts(self, select_columns='contacts(First Name,Last Name,Email,Signed up at,Created Time)', **kwargs):
+    def get_contacts(self, 
+            select_columns='contacts(First Name,Last Name,Email,Contact Type,Signed up at,Created Time)', 
+            **kwargs):
         return self.get_records("Contacts", select_columns, **kwargs)
-    def get_potentials(self, select_columns='potentials(Stage,Closing Date)', **kwargs):
+    def get_potentials(self, 
+            select_columns='potentials(Stage,Closing Date,Signed up at)', 
+            **kwargs):
         return self.get_records("Potentials", select_columns, **kwargs)
     def get_contacts_for_potential(self, contact_id):
         return self.get_related_records('ContactRoles', 'Potentials', contact_id)
