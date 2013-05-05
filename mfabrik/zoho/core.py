@@ -201,7 +201,6 @@ class Connection(object):
         parameters["ticket"] = self.ticket
         parameters["authtoken"] = self.authtoken
         parameters["scope"] = self.scope
-        parameters["version"] = 4# TODO added for updateRecords, but OK always?
         
         stringify(parameters)
         

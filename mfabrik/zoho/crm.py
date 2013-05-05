@@ -151,8 +151,10 @@ class CRM(Connection):
         return self._insert_records("Notes", "insertRecords", notes, extra_post_parameters)
 
     def update_contacts(self, contacts, extra_post_parameters={}):
+        extra_post_parameters['version'] = 4
         return self._insert_records("Contacts", "updateRecords", contacts, extra_post_parameters)
     def update_leads(self, leads, extra_post_parameters={}):
+        extra_post_parameters['version'] = 4
         return self._insert_records("Leads", "updateRecords", leads, extra_post_parameters)
     
     def get_inserted_records(self, response):
