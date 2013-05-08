@@ -224,20 +224,50 @@ class CRM(Connection):
             "https://crm.zoho.com/crm/private/json/%s/getRelatedRecords" % (record_name), post_params)
         return self._parse_json_response(response, record_name)
 
+    def search_records(self, record_name, selectColumns, search_condition,
+            from_index=None, to_index=None, parameters={}):
+        self.ensure_opened()
+        
+        post_params = {
+            "selectColumns" : selectColumns,
+            "newFormat" : 2,
+            "searchCondition": search_condition,
+        }
+        if from_index:
+            post_params['fromIndex'] = from_index
+        if to_index:
+            post_params['toIndex'] = to_index
+
+        post_params.update(parameters)
+
+        response = self.do_call(
+            "https://crm.zoho.com/crm/private/json/%s/getSearchRecords" % (record_name), post_params)
+        return self._parse_json_response(response, record_name)
+
     def get_leads(self, 
-            select_columns='leads(Email,First Name,Last Name,Lead Status,Signed up at,Created Time)', 
+            select_columns='leads(Email,First Name,Last Name,Lead Status,Email Opt Out,Signed up at,Created Time)', 
             **kwargs):
         return self.get_records("Leads", select_columns, **kwargs)
     def get_contacts(self, 
-            select_columns='contacts(First Name,Last Name,Email,Contact Type,Signed up at,Created Time)', 
+            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time)', 
             **kwargs):
         return self.get_records("Contacts", select_columns, **kwargs)
     def get_potentials(self, 
             select_columns='potentials(Stage,Closing Date,Signed up at)', 
             **kwargs):
         return self.get_records("Potentials", select_columns, **kwargs)
+    
     def get_contacts_for_potential(self, contact_id):
         return self.get_related_records('ContactRoles', 'Potentials', contact_id)
+
+    def search_leads(self, search_condition,
+            select_columns='leads(Email,First Name,Last Name,Lead Status,Email Opt Out,Signed up at,Created Time)', 
+            **kwargs):
+        return self.search_records("Leads", select_columns, search_condition, **kwargs)
+    def search_contacts(self, search_condition,
+            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time)', 
+            **kwargs):
+        return self.search_records("Contacts", select_columns, search_condition, **kwargs)
 
     def delete_record(self, id, parameters={}):
         """ Delete one record from Zoho CRM.
