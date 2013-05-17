@@ -257,8 +257,10 @@ class CRM(Connection):
             **kwargs):
         return self.get_records("Potentials", select_columns, **kwargs)
     
-    def get_contacts_for_potential(self, contact_id):
-        return self.get_related_records('ContactRoles', 'Potentials', contact_id)
+    def get_contacts_for_potential(self, potential_id):
+        return self.get_related_records('ContactRoles', 'Potentials', potential_id)
+    def get_funnel_stages_for_potential(self, potential_id):
+        return self.get_related_records('PotStageHistory', 'Potentials', potential_id)
 
     def search_leads(self, search_condition,
             select_columns='leads(Email,First Name,Last Name,Lead Status,Email Opt Out,Signed up at,Created Time)', 
@@ -268,6 +270,10 @@ class CRM(Connection):
             select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time)', 
             **kwargs):
         return self.search_records("Contacts", select_columns, search_condition, **kwargs)
+    def search_potentials(self, search_condition,
+            select_columns='potentials(Contact Name,Signed up at,Closing Date,Stage,Lead Source,Exact lead source)', 
+            **kwargs):
+        return self.search_records("Potentials", select_columns, search_condition, **kwargs)
 
     def delete_record(self, id, parameters={}):
         """ Delete one record from Zoho CRM.
