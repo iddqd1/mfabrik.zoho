@@ -253,7 +253,7 @@ class CRM(Connection):
             **kwargs):
         return self.get_records("Contacts", select_columns, **kwargs)
     def get_potentials(self, 
-            select_columns='potentials(Stage,Closing Date,Signed up at)', 
+            select_columns='potentials(Contact Name,Signed up at,Closing Date,Stage,Lead Source,Exact lead source)', 
             **kwargs):
         return self.get_records("Potentials", select_columns, **kwargs)
     
