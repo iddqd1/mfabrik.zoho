@@ -204,6 +204,27 @@ class CRM(Connection):
         response = self.do_call(
             "https://crm.zoho.com/crm/private/json/%s/getRecords" % (record_name), post_params)
         return self._parse_json_response(response, record_name)
+    def get_record_by_id(self, record_id, record_name, selectColumns, parameters={}):
+        """
+        https://www.zoho.com/crm/help/api/getrecordbyid.html   
+
+        Returns a Python list of length=1 of record dictionary, keys of which
+        dependent on record type.
+
+        """
+
+        self.ensure_opened()
+
+        post_params = {
+            "id": record_id,
+            "selectColumns" : selectColumns,
+            "newFormat" : 2,
+        }
+        post_params.update(parameters)
+
+        response = self.do_call(
+            "https://crm.zoho.com/crm/private/json/%s/getRecordById" % (record_name), post_params)
+        return self._parse_json_response(response, record_name)[0]
 
     def get_related_records(self, record_name, parent_module, contact_id, 
             from_index=0, to_index=200, parameters={}):
@@ -257,6 +278,12 @@ class CRM(Connection):
             **kwargs):
         return self.get_records("Potentials", select_columns, **kwargs)
     
+    def get_contact_by_id(self, contact_id,
+            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time)',
+            **kwargs):
+        return self.get_record_by_id(contact_id, "Contacts", select_columns, **kwargs)
+
+        
     def get_contacts_for_potential(self, potential_id):
         return self.get_related_records('ContactRoles', 'Potentials', potential_id)
     def get_funnel_stages_for_potential(self, potential_id):
