@@ -279,7 +279,7 @@ class CRM(Connection):
         return self.get_records("Potentials", select_columns, **kwargs)
     
     def get_contact_by_id(self, contact_id,
-            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time)',
+            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time,Stripe Customer ID)',
             **kwargs):
         return self.get_record_by_id(contact_id, "Contacts", select_columns, **kwargs)
 
