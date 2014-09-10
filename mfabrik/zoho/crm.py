@@ -129,7 +129,6 @@ class CRM(Connection):
         
         @return: List of record ids which were created by insert recoreds
         """
-        self.ensure_opened()
         root = self._xmlize_record(record_name, records)
         post = {
             'newFormat':    1,
@@ -189,7 +188,6 @@ class CRM(Connection):
 
         """
         
-        self.ensure_opened()
         
         post_params = {
             "selectColumns" : selectColumns,
@@ -214,7 +212,6 @@ class CRM(Connection):
 
         """
 
-        self.ensure_opened()
 
         post_params = {
             "id": record_id,
@@ -230,7 +227,6 @@ class CRM(Connection):
     def get_related_records(self, record_name, parent_module, contact_id, 
             from_index=0, to_index=200, parameters={}):
         
-        self.ensure_opened()
         
         post_params = {
             "id" : contact_id,
@@ -248,7 +244,6 @@ class CRM(Connection):
 
     def search_records(self, record_name, selectColumns, search_condition,
             from_index=None, to_index=None, parameters={}):
-        self.ensure_opened()
         
         post_params = {
             "selectColumns" : selectColumns,
@@ -311,8 +306,6 @@ class CRM(Connection):
         @param parameters: Extra HTTP post parameters        
         """
         
-        self.ensure_opened()
-    
         post_params = {}
         post_params["id"] = id
         post_params.update(parameters)

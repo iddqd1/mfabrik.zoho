@@ -75,104 +75,19 @@ class Connection(object):
         self.scope = scope
         # 
         self.auth_url = None
-        
-        # Ticket is none until the conneciton is opened
-        self.ticket = None
-        
+
     def get_service_name(self):
         """ Return API name which we are using. """
         raise NotImplementedError("Subclass must implement")
         
     def open(self):
         """ Open a new Zoho API session """
-        self.ticket = self._create_ticket()
+        return
     
     def close(self):
         """ Close the current Zoho API session ("ticket") """
-        try:
-            self.ensure_opened()
-        except ZohoException, ze:
-            # D'oh! He's using exceptions for flow and that makes me :(
-            # just make the error message easier
-            raise ZohoException("No connection found. No ticket appears open.")
+        return
 
-        requestUrl = "https://accounts.zoho.com/logout?ticket=%s&FROM_AGENT=true" % self.ticket
-        request = urllib2.Request(requestUrl)
-        body = urllib2.urlopen(request).read()
-        
-        data = self._parse_ticket_response(body)
-        if not data.has_key("RESULT"):
-            raise ZohoException("Missing 'RESULT' in response: %s" % data)
-        if not data["RESULT"] == "TRUE":
-            raise ZohoException("Could not close ticket: %s" % data)
-
-    def _create_ticket(self):
-        """ 
-        Ticket idenfities Zoho session.
-        
-        It is a bit like cookie authentication.
-        
-        @return: Ticket code
-        """
-        #servicename=ZohoCRM&FROM_AGENT=true&LOGIN_ID=Zoho Username or Email Address&PASSWORD=Password
-        params = {
-            'servicename': self.get_service_name(),
-            'FROM_AGENT': 'true',
-            'LOGIN_ID': self.username,
-            'PASSWORD': self.password
-        }
-        
-        requestUrl = "https://accounts.zoho.com/login?%s" % (urllib.urlencode(params))
-        request = urllib2.Request(requestUrl, {})
-        body = urllib2.urlopen(request).read()
-        
-        data = self._parse_ticket_response(body)
-        if not data.has_key("WARNING"):
-            raise ZohoException(str(data))
-        if data["WARNING"] != "null":
-            # Zoho has set an error field
-            raise ZohoException("Could not auth:" + data["WARNING"])
-        
-        if data["RESULT"] != "TRUE":
-            raise ZohoException("Ticket result was not valid")
-
-        return data["TICKET"]
-    
-    def _parse_ticket_response(self, data):
-        """ Dictionarize ticket opening response
-       
-        Example response::
-        
-            # #Sun Jun 27 20:10:30 PDT 2010 GETUSERNAME=null WARNING=null PASS_EXPIRY=-1 TICKET=3bc26b16d97473a1245dbf93a5dcd153 RESULT=TRUE 
-        """
-        
-        output = {}
-        
-        lines = data.split("\n")
-        for line in lines:
-            
-            if line.startswith("#"):
-                # Comment
-                continue
-            
-            if line.strip() == "":
-                # Empty line
-                continue
-            
-            if not "=" in line:
-                raise ZohoException("Bad ticket data:" + data)
-        
-            key, value = line.split("=")
-            output[key] = value
-            
-        return output
-
-    def ensure_opened(self):
-        """ Make sure that the Zoho Connection is correctly opened """
-        
-        if self.ticket is None:
-            raise ZohoException("Need to initialize Zoho ticket first")
-        
     def do_xml_call(self, url, parameters, root):
         """  Do Zoho API call with outgoing XML payload.
         
@@ -198,7 +113,6 @@ class Connection(object):
         """
         # Do not mutate orginal dict
         parameters = parameters.copy()
-        parameters["ticket"] = self.ticket
         parameters["authtoken"] = self.authtoken
         parameters["scope"] = self.scope
         
