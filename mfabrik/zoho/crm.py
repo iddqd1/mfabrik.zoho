@@ -19,23 +19,23 @@ except ImportError:
         from lxml.etree import Element, tostring, fromstring
     except ImportError:
         raise RuntimeError("XML library not available:  no etree, no lxml")
-   
+
 from core import Connection, ZohoException, decode_json
 
 class CRM(Connection):
     """ CRM specific Zoho APIs mapped to Python """
-    
+
     def get_service_name(self):
         """ Called by base class """
         return "ZohoCRM"
-    
+
     def check_successful_xml(self, response):
         """ Make sure that we get "succefully" response.
-        
+
         Throw exception of the response looks like something not liked.
-        
+
         @raise: ZohoException if any error
-        
+
         @return: Always True
         """
 
@@ -77,11 +77,11 @@ class CRM(Connection):
         return root
 
     def _parse_json_response(self, response, record_name):
-        # raw data looks like {'response': {'result': {'Leads': {'row': 
+        # raw data looks like {'response': {'result': {'Leads': {'row':
         # [{'FL': [{'content': '177376000000142085', 'val': 'LEADID'}, ...
 
         data =  decode_json(response)
-        
+
         def parse_row(row):
             item = {}
             if type(row["FL"]) == list:
@@ -94,10 +94,10 @@ class CRM(Connection):
                 raise ZohoException("Unknown structure to row '%s'" % row)
             return item
         # Sanify output data to more Python-like format
-        
+
         if data["response"].has_key("nodata"):
             return []
-        
+
         # are there times when there's 'response', no 'nodata'
         # that would require explicit checking for 'result' key??
         output = []
@@ -116,17 +116,17 @@ class CRM(Connection):
 
     def _insert_records(self, record_name, method, records, extra_post_parameters={}):
         """ Insert new records (leads, contacts, etc) to Zoho CRM database.
-        
+
         The contents of the record parameters can be defined in Zoho CRM itself.
-        
+
         http://zohocrmapi.wiki.zoho.com/insertRecords-Method.html
-        
-        @param records: List of dictionaries. Dictionary content is directly mapped to 
+
+        @param records: List of dictionaries. Dictionary content is directly mapped to
             <FL> XML parameters as described in Zoho CRM API.
-        
-        @param extra_post_parameters: Parameters appended to the HTTP POST call. 
+
+        @param extra_post_parameters: Parameters appended to the HTTP POST call.
             Described in Zoho CRM API.
-        
+
         @return: List of record ids which were created by insert recoreds
         """
         root = self._xmlize_record(record_name, records)
@@ -136,7 +136,7 @@ class CRM(Connection):
         }
         post.update(extra_post_parameters)
         response = self.do_xml_call(
-            "https://crm.zoho.com/crm/private/xml/%s/%s" % (record_name, method), 
+            "https://crm.zoho.com/crm/private/xml/%s/%s" % (record_name, method),
             post, root)
         self.check_successful_xml(response)
         return self.get_inserted_records(response)
@@ -156,13 +156,13 @@ class CRM(Connection):
     def update_leads(self, leads, extra_post_parameters={}):
         extra_post_parameters['version'] = 4
         return self._insert_records("Leads", "updateRecords", leads, extra_post_parameters)
-    
+
     def get_inserted_records(self, response):
         """
         @return: List of record ids which were created by insert recoreds
         """
         root = fromstring(response)
-        
+
         records = []
         for result in root.findall("result"):
             for record in result.findall("recorddetail"):
@@ -171,24 +171,24 @@ class CRM(Connection):
                     record_detail[fl.get("val")] = fl.text
                 records.append(record_detail)
         return records
-        
-    def get_records(self, record_name, selectColumns, 
+
+    def get_records(self, record_name, selectColumns,
             from_index=None, to_index=None, parameters={}):
-        """ 
-        
+        """
+
         http://zohocrmapi.wiki.zoho.com/getRecords-Method.html
-        
+
         @param selectColumns: String. What columns to query. For example query format,
             see API doc. Default is leads(First Name,Last Name,Company).
-        
+
         @param parameters: Dictionary of filtering parameters which are part of HTTP POST to Zoho.
             For example parameters see Zoho CRM API docs.
-        
+
         @return: Python list of dictionarizied leads. Each dictionary contains lead key-value pairs. LEADID column is always included.
 
         """
-        
-        
+
+
         post_params = {
             "selectColumns" : selectColumns,
             "newFormat" : 2,
@@ -205,7 +205,7 @@ class CRM(Connection):
         return self._parse_json_response(response, record_name)
     def get_record_by_id(self, record_id, record_name, selectColumns, parameters={}):
         """
-        https://www.zoho.com/crm/help/api/getrecordbyid.html   
+        https://www.zoho.com/crm/help/api/getrecordbyid.html
 
         Returns a Python list of length=1 of record dictionary, keys of which
         dependent on record type.
@@ -224,10 +224,10 @@ class CRM(Connection):
             "https://crm.zoho.com/crm/private/json/%s/getRecordById" % (record_name), post_params)
         return self._parse_json_response(response, record_name)[0]
 
-    def get_related_records(self, record_name, parent_module, contact_id, 
+    def get_related_records(self, record_name, parent_module, contact_id,
             from_index=0, to_index=200, parameters={}):
-        
-        
+
+
         post_params = {
             "id" : contact_id,
             "newFormat" : 2,
@@ -235,16 +235,16 @@ class CRM(Connection):
             "fromIndex" : from_index,
             "toIndex" : to_index,
         }
-        
+
         post_params.update(parameters)
 
         response = self.do_call(
             "https://crm.zoho.com/crm/private/json/%s/getRelatedRecords" % (record_name), post_params)
         return self._parse_json_response(response, record_name)
 
-    def search_records(self, record_name, selectColumns, search_condition,
+    def get_search_records(self, record_name, selectColumns, search_condition,
             from_index=None, to_index=None, parameters={}):
-        
+
         post_params = {
             "selectColumns" : selectColumns,
             "newFormat" : 2,
@@ -261,56 +261,75 @@ class CRM(Connection):
             "https://crm.zoho.com/crm/private/json/%s/getSearchRecords" % (record_name), post_params)
         return self._parse_json_response(response, record_name)
 
-    def get_leads(self, 
-            select_columns='leads(Email,First Name,Last Name,Lead Status,Email Opt Out,Signed up at,Created Time)', 
+    def search_records(self, record_name, search_condition, selectColumns="",
+            from_index=None, to_index=None, parameters={}):
+
+        post_params = {
+            "selectColumns" : selectColumns,
+            "newFormat" : 2,
+            "criteria": search_condition,
+        }
+        if from_index:
+            post_params['fromIndex'] = from_index
+        if to_index:
+            post_params['toIndex'] = to_index
+
+        post_params.update(parameters)
+
+        response = self.do_call(
+            "https://crm.zoho.com/crm/private/json/%s/searchRecords" % (record_name), post_params)
+        return self._parse_json_response(response, record_name)
+
+    def get_leads(self,
+            select_columns='leads(Email,First Name,Last Name,Lead Status,Email Opt Out,Signed up at,Created Time)',
             **kwargs):
         return self.get_records("Leads", select_columns, **kwargs)
-    def get_contacts(self, 
-            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time,Stripe Customer ID)', 
+    def get_contacts(self,
+            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time,Stripe Customer ID)',
             **kwargs):
         return self.get_records("Contacts", select_columns, **kwargs)
-    def get_potentials(self, 
-            select_columns='potentials(Contact Name,Signed up at,Closing Date,Stage,Lead Source,Exact lead source)', 
+    def get_potentials(self,
+            select_columns='potentials(Contact Name,Signed up at,Closing Date,Stage,Lead Source,Exact lead source)',
             **kwargs):
         return self.get_records("Potentials", select_columns, **kwargs)
-    
+
     def get_contact_by_id(self, contact_id,
             select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time,Stripe Customer ID)',
             **kwargs):
         return self.get_record_by_id(contact_id, "Contacts", select_columns, **kwargs)
 
-        
+
     def get_contacts_for_potential(self, potential_id):
         return self.get_related_records('ContactRoles', 'Potentials', potential_id)
     def get_funnel_stages_for_potential(self, potential_id):
         return self.get_related_records('PotStageHistory', 'Potentials', potential_id)
 
     def search_leads(self, search_condition,
-            select_columns='leads(Email,First Name,Last Name,Lead Status,Email Opt Out,Signed up at,Created Time)', 
+            select_columns='leads(Email,First Name,Last Name,Lead Status,Email Opt Out,Signed up at,Created Time)',
             **kwargs):
         return self.search_records("Leads", select_columns, search_condition, **kwargs)
     def search_contacts(self, search_condition,
-            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time,Stripe Customer ID)', 
+            select_columns='contacts(First Name,Last Name,Email,Contact Type,Email Opt Out,Signed up at,Created Time,Stripe Customer ID)',
             **kwargs):
         return self.search_records("Contacts", select_columns, search_condition, **kwargs)
     def search_potentials(self, search_condition,
-            select_columns='potentials(Contact Name,Signed up at,Closing Date,Stage,Lead Source,Exact lead source)', 
+            select_columns='potentials(Contact Name,Signed up at,Closing Date,Stage,Lead Source,Exact lead source)',
             **kwargs):
         return self.search_records("Potentials", select_columns, search_condition, **kwargs)
 
     def delete_record(self, id, parameters={}):
         """ Delete one record from Zoho CRM.
-                        
+
         @param id: Record id
-        
-        @param parameters: Extra HTTP post parameters        
+
+        @param parameters: Extra HTTP post parameters
         """
-        
+
         post_params = {}
         post_params["id"] = id
         post_params.update(parameters)
-        
+
         response = self.do_call("https://crm.zoho.com/crm/private/xml/Leads/deleteRecords", post_params)
-        
+
         self.check_successful_xml(response)
 
